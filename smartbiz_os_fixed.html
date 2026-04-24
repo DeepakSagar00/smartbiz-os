@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartBiz OS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0F0E0C;--surface:#1A1815;--surface2:#232019;--surface3:#2C2820;
+    --amber:#D4900A;--amber2:#F5B830;--coral:#C4572A;--sage:#5C7A4E;
+    --text:#EDE8DF;--muted:#8C8880;--border:#3A3530;
+    --font-head:'Fraunces',serif;--font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.5;height:100vh;overflow:hidden}
+  .app{display:grid;grid-template-columns:200px 1fr;grid-template-rows:48px 1fr;height:100vh}
+  .topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:var(--font-head);font-size:18px;font-weight:600;color:var(--amber2);letter-spacing:-0.5px}
+  .logo span{color:var(--muted);font-weight:300;font-style:italic;font-size:14px;margin-left:4px}
+  .topbar-right{display:flex;align-items:center;gap:12px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--amber);color:#0F0E0C;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+  .key-status{font-size:11px;padding:2px 8px;border-radius:4px;font-family:var(--font-mono)}
+  .key-ok{background:rgba(92,122,78,0.2);color:var(--sage)}
+  .key-no{background:rgba(196,87,42,0.2);color:var(--coral)}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto}
+  .nav-label{font-size:10px;font-family:var(--font-mono);color:var(--muted);padding:0 16px;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase;margin-top:14px}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;font-size:13px;color:var(--muted);border-left:2px solid transparent;transition:all 0.15s}
+  .nav-item:hover{color:var(--text);background:var(--surface2)}
+  .nav-item.active{color:var(--amber2);border-left-color:var(--amber2);background:var(--surface2)}
+  .nav-icon{width:14px;height:14px;flex-shrink:0}
+  .main{background:var(--bg);overflow:auto}
+  .page{display:none;padding:24px}
+  .page.active{display:block}
+  .page-title{font-family:var(--font-head);font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .page-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+  .card-title{font-size:11px;font-family:var(--font-mono);color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+  .metric-label{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:6px}
+  .metric-val{font-size:22px;font-weight:500;font-family:var(--font-head);color:var(--text);line-height:1}
+  .metric-delta{font-size:11px;margin-top:4px}
+  .up{color:var(--sage)}.down{color:var(--coral)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+  .bar-label{width:60px;color:var(--muted);text-align:right;flex-shrink:0}
+  .bar-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px;background:var(--amber)}
+  .bar-val{width:40px;color:var(--text);font-family:var(--font-mono);font-size:11px}
+  .mini-chart{height:60px;display:flex;align-items:flex-end;gap:4px}
+  .mc-bar{flex:1;background:var(--surface3);border-radius:2px 2px 0 0}
+  .mc-bar.hi{background:var(--amber)}
+  .activity-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+  .activity-item:last-child{border-bottom:none}
+  .activity-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .dot-green{background:var(--sage)}.dot-amber{background:var(--amber)}.dot-red{background:var(--coral)}
+  .activity-text{flex:1;color:var(--text)}.activity-time{color:var(--muted);font-family:var(--font-mono);font-size:11px}
+
+  /* Chat */
+  .chat-page-wrap{display:grid;grid-template-rows:auto auto 1fr auto;height:calc(100vh - 120px);gap:0}
+  .chat-msgs{overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;flex:1}
+  .chat-msgs::-webkit-scrollbar{width:4px}.chat-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .msg{display:flex;gap:8px;align-items:flex-start}
+  .msg.user{flex-direction:row-reverse}
+  .msg-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:var(--font-mono);flex-shrink:0}
+  .ai-av{background:var(--amber);color:#0F0E0C}
+  .user-av{background:var(--surface3);color:var(--muted)}
+  .bubble{max-width:78%;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .ai-bubble{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .user-bubble{background:var(--amber);color:#0F0E0C}
+  .chat-input-row{display:flex;gap:8px;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:10px}
+  .chat-input{flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;resize:none}
+  .chat-input:focus{border-color:var(--amber)}
+  .send-btn{background:var(--amber);color:#0F0E0C;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;font-weight:500;font-size:13px;font-family:var(--font-body)}
+  .send-btn:hover{background:var(--amber2)}.send-btn:disabled{opacity:0.4;cursor:not-allowed}
+  .dot-pulse{width:6px;height:6px;border-radius:50%;background:var(--amber);display:inline-block;animation:pulse 1.2s infinite;margin:0 2px}
+  .dot-pulse:nth-child(2){animation-delay:.2s}.dot-pulse:nth-child(3){animation-delay:.4s}
+  @keyframes pulse{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+  /* Settings */
+  .settings-stack{display:flex;flex-direction:column;gap:12px}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;gap:16px}
+  .setting-info{flex:1}
+  .setting-title{font-size:13px;color:var(--text);margin-bottom:2px}
+  .setting-desc{font-size:11px;color:var(--muted)}
+  .toggle{width:36px;height:20px;background:var(--border);border-radius:10px;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+  .toggle.on{background:var(--amber)}
+  .toggle-thumb{width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left .2s}
+  .toggle.on .toggle-thumb{left:19px}
+  .api-block{background:var(--surface);border:1px solid var(--amber);border-radius:8px;padding:18px}
+  .api-block-title{font-family:var(--font-mono);font-size:11px;color:var(--amber2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .api-block-sub{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .key-input-row{display:flex;gap:8px}
+  .key-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none}
+  .key-input:focus{border-color:var(--amber)}
+  .key-input::placeholder{color:var(--muted)}
+  .btn-save{background:var(--amber);color:#0F0E0C;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;font-weight:500;font-size:13px;font-family:var(--font-body);white-space:nowrap}
+  .btn-save:hover{background:var(--amber2)}
+  .btn-clear{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:9px 12px;cursor:pointer;font-size:12px;font-family:var(--font-mono)}
+  .btn-clear:hover{color:var(--coral);border-color:var(--coral)}
+  .key-saved-msg{font-size:12px;margin-top:8px;display:none}
+  .ok-msg{color:var(--sage)}.err-msg{color:var(--coral)}
+
+  /* CRM */
+  .crm-table{width:100%;border-collapse:collapse;font-size:13px}
+  .crm-table th{text-align:left;padding:8px 12px;font-size:11px;font-family:var(--font-mono);color:var(--muted);border-bottom:1px solid var(--border);font-weight:400}
+  .crm-table td{padding:9px 12px;border-bottom:1px solid var(--border)}
+  .crm-table tr:last-child td{border-bottom:none}
+  .crm-table tr:hover td{background:var(--surface2)}
+  .stage{font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--font-mono)}
+  .s-won{background:rgba(92,122,78,.3);color:var(--sage)}
+  .s-qual{background:rgba(212,144,10,.2);color:var(--amber2)}
+  .s-close{background:rgba(196,87,42,.2);color:var(--coral)}
+  .s-lead{background:rgba(140,136,128,.15);color:var(--muted)}
+
+  /* Upload */
+  .upload-zone{border:2px dashed var(--border);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:14px}
+  .upload-zone:hover{border-color:var(--amber);background:rgba(212,144,10,0.04)}
+  .upload-zone.drag-over{border-color:var(--amber2);background:rgba(245,184,48,0.08)}
+  .file-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+  .file-name{flex:1;font-size:13px;color:var(--text)}
+  .file-meta{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+  .fstatus{font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--font-mono)}
+  .fdone{background:rgba(92,122,78,.2);color:var(--sage)}
+  .fproc{background:rgba(212,144,10,.2);color:var(--amber2)}
+  .btn{background:var(--amber);color:#0F0E0C;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-weight:500;font-size:13px;font-family:var(--font-body)}
+  .btn:hover{background:var(--amber2)}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:8px 14px;cursor:pointer;font-size:12px;font-family:var(--font-mono)}
+  .btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+  .notif{width:6px;height:6px;background:var(--coral);border-radius:50%;margin-left:auto}
+
+  /* CSV Preview */
+  .csv-preview{margin-top:16px;display:none}
+  .csv-preview-title{font-size:11px;font-family:var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .csv-table-wrap{overflow-x:auto;max-height:200px;overflow-y:auto;border-radius:6px;border:1px solid var(--border)}
+  .csv-table{width:100%;border-collapse:collapse;font-size:12px}
+  .csv-table th{background:var(--surface2);padding:6px 10px;text-align:left;font-family:var(--font-mono);font-size:10px;color:var(--muted);font-weight:400;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+  .csv-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:11px;white-space:nowrap}
+  .csv-table tr:last-child td{border-bottom:none}
+  .csv-table tr:hover td{background:var(--surface2)}
+  .csv-stats{display:flex;gap:16px;margin-top:8px;font-size:11px;font-family:var(--font-mono);color:var(--muted)}
+  .csv-stats span{color:var(--text)}
+
+  /* Add Lead Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:420px;max-width:90vw}
+  .modal-title{font-family:var(--font-head);font-size:18px;color:var(--text);margin-bottom:16px}
+  .form-group{margin-bottom:12px}
+  .form-label{font-size:11px;font-family:var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block}
+  .form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none}
+  .form-input:focus{border-color:var(--amber)}
+  .form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;cursor:pointer}
+  .form-select:focus{border-color:var(--amber)}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+  /* AI Analysis result */
+  .analysis-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none;max-height:280px;overflow-y:auto}
+  .analysis-box::-webkit-scrollbar{width:4px}.analysis-box::-webkit-scrollbar-thumb{background:var(--border)}
+
+  /* Export report toast */
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text);z-index:200;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none}
+  .toast.show{transform:translateY(0);opacity:1}
+
+  /* CRM Search highlight */
+  .highlight{background:rgba(212,144,10,0.25);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo">SmartBiz<span>OS</span></div>
+    <div class="topbar-right">
+      <span class="key-status key-no" id="key-badge">NO API KEY</span>
+      <div style="font-size:11px;color:var(--muted)">Acme Corp</div>
+      <div class="avatar">AC</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" data-page="dashboard" onclick="nav('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-label">Tools</div>
+    <div class="nav-item" data-page="aichat" onclick="nav('aichat',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H9l-3 3v-3H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.2"/></svg>
+      AI Chat
+      <div class="notif" id="chat-notif"></div>
+    </div>
+    <div class="nav-item" data-page="upload" onclick="nav('upload',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 11V3m0 0L5 6m3-3l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      CSV Upload
+    </div>
+    <div class="nav-item" data-page="crm" onclick="nav('crm',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 4a2 2 0 010 4m3 6c0-2.2-1.3-4-3-4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      CRM
+    </div>
+    <div class="nav-label">System</div>
+    <div class="nav-item" data-page="settings" onclick="nav('settings',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1M3.5 3.5l.7.7M11.8 11.8l.7.7M3.5 12.5l.7-.7M11.8 4.2l.7-.7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Settings
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Good morning, Acme Corp</div>
+      <div class="page-sub" id="dash-date">Loading date...</div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">revenue (mtd)</div><div class="metric-val" id="m-revenue">₹4.2L</div><div class="metric-delta up">↑ 12.4%</div></div>
+        <div class="metric"><div class="metric-label">active leads</div><div class="metric-val" id="m-leads">—</div><div class="metric-delta up" id="m-leads-d">—</div></div>
+        <div class="metric"><div class="metric-label">csv files</div><div class="metric-val" id="m-files">2</div><div class="metric-delta up" id="m-files-d">uploaded</div></div>
+        <div class="metric"><div class="metric-label">ai queries</div><div class="metric-val" id="m-queries">0</div><div class="metric-delta up">free tier</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">monthly revenue</div>
+          <div class="mini-chart" id="mc"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--muted);font-family:var(--font-mono)"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">sales by channel</div>
+          <div class="bar-row"><div class="bar-label">Direct</div><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div><div class="bar-val">₹1.8L</div></div>
+          <div class="bar-row"><div class="bar-label">Online</div><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div><div class="bar-val">₹1.2L</div></div>
+          <div class="bar-row"><div class="bar-label">Referral</div><div class="bar-track"><div class="bar-fill" style="width:35%"></div></div><div class="bar-val">₹0.8L</div></div>
+          <div class="bar-row"><div class="bar-label">Partner</div><div class="bar-track"><div class="bar-fill" style="width:18%"></div></div><div class="bar-val">₹0.4L</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">recent activity</div>
+        <div id="activity-feed">
+          <div class="activity-item"><div class="activity-dot dot-green"></div><div class="activity-text">Invoice #INV-089 paid by Tata Consultancy</div><div class="activity-time">2m ago</div></div>
+          <div class="activity-item"><div class="activity-dot dot-amber"></div><div class="activity-text">CSV uploaded: Q1_sales_data.csv (2.4k rows)</div><div class="activity-time">18m ago</div></div>
+          <div class="activity-item"><div class="activity-dot dot-green"></div><div class="activity-text">Lead "Infosys Ltd" moved to Qualified</div><div class="activity-time">1h ago</div></div>
+          <div class="activity-item"><div class="activity-dot dot-red"></div><div class="activity-text">Invoice #INV-072 overdue — ₹45,000</div><div class="activity-time">3h ago</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI CHAT -->
+    <div class="page" id="page-aichat">
+      <div class="page-title">AI Business Analyst</div>
+      <div class="page-sub" id="chat-sub">Set your Groq API key in Settings to enable AI chat</div>
+      <div id="no-key-banner" style="background:rgba(196,87,42,0.1);border:1px solid var(--coral);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--coral);display:flex;align-items:center;justify-content:space-between">
+        <span>No Groq API key found. Add it in Settings to chat.</span>
+        <button class="btn" style="font-size:12px;padding:5px 12px" onclick="nav('settings',document.querySelector('[data-page=settings]'))">Go to Settings →</button>
+      </div>
+      <div class="chat-page-wrap">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div class="chat-msgs" id="chat-msgs" style="flex:1;min-height:300px;max-height:calc(100vh - 300px)">
+            <div class="msg">
+              <div class="msg-av ai-av">SB</div>
+              <div class="bubble ai-bubble">Hello! I'm your SmartBiz AI analyst. Add your free Groq API key in Settings, then ask me anything about your business — leads, sales trends, invoices, and more.</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-in" rows="2" placeholder="Ask about your business data..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMsg()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div class="page" id="page-upload">
+      <div class="page-title">CSV Data Upload</div>
+      <div class="page-sub">Upload sales or customer data to unlock AI analysis</div>
+
+      <div class="upload-zone" id="upload-zone"
+        onclick="document.getElementById('file-in').click()"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)">
+        <input type="file" id="file-in" style="display:none" accept=".csv,.tsv,.txt" onchange="handleFileSelect(this)">
+        <div style="font-size:32px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;color:var(--text);margin-bottom:4px">Drop your CSV files here</div>
+        <div style="font-size:12px;color:var(--muted)">or click to browse · .csv .tsv .txt · Max 50MB</div>
+      </div>
+
+      <div id="file-list">
+        <div class="file-item">
+          <span>📊</span>
+          <div>
+            <div class="file-name">Q1_sales_2024.csv</div>
+            <div class="file-meta">2.4 MB · 2,400 rows</div>
+          </div>
+          <div class="fstatus fdone">PROCESSED</div>
+          <button class="btn-ghost" style="font-size:11px;padding:4px 10px" onclick="removeFile(this)">✕</button>
+        </div>
+        <div class="file-item">
+          <span>👥</span>
+          <div>
+            <div class="file-name">customers_export.csv</div>
+            <div class="file-meta">845 KB · 890 rows</div>
+          </div>
+          <div class="fstatus fdone">PROCESSED</div>
+          <button class="btn-ghost" style="font-size:11px;padding:4px 10px" onclick="removeFile(this)">✕</button>
+        </div>
+      </div>
+
+      <!-- CSV Preview area -->
+      <div class="csv-preview" id="csv-preview">
+        <div class="csv-preview-title">Preview — <span id="preview-fname"></span></div>
+        <div class="csv-stats">
+          Rows: <span id="preview-rows">—</span> &nbsp;·&nbsp;
+          Columns: <span id="preview-cols">—</span> &nbsp;·&nbsp;
+          Size: <span id="preview-size">—</span>
+        </div>
+        <div class="csv-table-wrap" style="margin-top:8px">
+          <table class="csv-table" id="csv-table"><thead></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        <button class="btn" id="analyze-btn" onclick="analyzeCSV()">▶ Analyze with AI</button>
+        <button class="btn-ghost" onclick="exportReport()">Export Report</button>
+        <span id="analyze-status" style="font-size:12px;color:var(--muted);font-family:var(--font-mono);display:none"></span>
+      </div>
+
+      <div class="analysis-box" id="analysis-box"></div>
+    </div>
+
+    <!-- CRM -->
+    <div class="page" id="page-crm">
+      <div class="page-title">CRM — Leads & Customers</div>
+      <div class="page-sub" id="crm-sub">5 leads in pipeline</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="text" id="crm-search" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 12px;color:var(--text);font-size:13px;font-family:var(--font-body);outline:none" placeholder="Search leads by company or contact..." oninput="searchLeads(this.value)" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border)'">
+        <button class="btn" onclick="openAddLeadModal()">+ Add Lead</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="crm-table">
+          <thead><tr><th>Company</th><th>Contact</th><th>Value</th><th>Stage</th><th>Last Touch</th><th>Actions</th></tr></thead>
+          <tbody id="crm-tbody"></tbody>
+        </table>
+      </div>
+      <div id="crm-empty" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:13px">No leads match your search.</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Configure your SmartBiz OS instance</div>
+      <div class="settings-stack">
+
+        <div class="api-block">
+          <div class="api-block-title">Groq API Key — Free Tier</div>
+          <div class="api-block-sub">Get your free key at <span style="color:var(--amber2);font-family:var(--font-mono)">console.groq.com</span> → API Keys → Create key. Paste it below.</div>
+          <div class="key-input-row">
+            <input class="key-input" type="password" id="groq-key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            <button class="btn-save" onclick="saveKey()">Save Key</button>
+            <button class="btn-clear" onclick="clearKey()">Clear</button>
+          </div>
+          <div class="key-saved-msg ok-msg" id="key-ok-msg">✓ Key saved! AI Chat is now enabled.</div>
+          <div class="key-saved-msg err-msg" id="key-err-msg">✗ Key must start with "gsk_" and be at least 20 characters.</div>
+          <div style="margin-top:10px;font-size:11px;color:var(--muted)">Model: <span style="font-family:var(--font-mono);color:var(--text)">llama-3.3-70b-versatile</span> · Your key is stored only in this session's memory</div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-title">Email Notifications</div><div class="setting-desc">Alerts for invoice payments and new leads</div></div>
+          <div class="toggle on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-title">AI Auto-Analysis</div><div class="setting-desc">Automatically analyze uploaded CSV files</div></div>
+          <div class="toggle on" id="auto-analysis-toggle" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-title">Audit Logs</div><div class="setting-desc">Track all user actions for compliance</div></div>
+          <div class="toggle" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-title">Role-Based Access</div><div class="setting-desc">Restrict features by user role</div></div>
+          <div class="toggle on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Add Lead Modal -->
+<div class="modal-overlay" id="add-lead-modal" onclick="if(event.target===this)closeAddLeadModal()">
+  <div class="modal">
+    <div class="modal-title">Add New Lead</div>
+    <div class="form-group">
+      <label class="form-label">Company Name *</label>
+      <input class="form-input" id="lead-company" type="text" placeholder="e.g. Tata Consultancy" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contact Person *</label>
+      <input class="form-input" id="lead-contact" type="text" placeholder="e.g. Ravi Sharma" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deal Value (₹)</label>
+      <input class="form-input" id="lead-value" type="number" placeholder="e.g. 250000" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Stage</label>
+      <select class="form-select" id="lead-stage">
+        <option value="LEAD">Lead</option>
+        <option value="QUALIFIED">Qualified</option>
+        <option value="CLOSING">Closing</option>
+        <option value="WON">Won</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeAddLeadModal()">Cancel</button>
+      <button class="btn" onclick="addLead()">Add Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let groqKey = '';
+let aiQueryCount = 0;
+let uploadedFiles = [];
+let lastUploadedCSVData = null; // stores parsed CSV for AI analysis
+let lastUploadedCSVText = null;
+
+const leads = [
+  { company:'Tata Consultancy', contact:'Ravi Sharma',   value:450000, stage:'WON',       lastTouch:'Today' },
+  { company:'Infosys Ltd',      contact:'Priya Menon',   value:280000, stage:'QUALIFIED',  lastTouch:'Yesterday' },
+  { company:'Wipro Digital',    contact:'Arjun Das',     value:120000, stage:'CLOSING',    lastTouch:'2d ago' },
+  { company:'Reliance Retail',  contact:'Sunita Rao',    value:90000,  stage:'LEAD',       lastTouch:'3d ago' },
+  { company:'HCL Technologies', contact:'Kiran Joshi',   value:360000, stage:'QUALIFIED',  lastTouch:'4d ago' },
+];
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ─── KEY UI ──────────────────────────────────────────────
+function updateKeyUI() {
+  const badge = document.getElementById('key-badge');
+  const banner = document.getElementById('no-key-banner');
+  const sub = document.getElementById('chat-sub');
+  const notif = document.getElementById('chat-notif');
+  if (groqKey) {
+    badge.textContent = 'GROQ ACTIVE';
+    badge.className = 'key-status key-ok';
+    if (banner) banner.style.display = 'none';
+    sub.textContent = 'Powered by Groq · llama-3.3-70b-versatile · Free tier';
+    notif.style.display = 'none';
+  } else {
+    badge.textContent = 'NO API KEY';
+    badge.className = 'key-status key-no';
+    if (banner) banner.style.display = 'flex';
+    sub.textContent = 'Set your Groq API key in Settings to enable AI chat';
+    notif.style.display = 'block';
+  }
+}
+
+function saveKey() {
+  const val = document.getElementById('groq-key-input').value.trim();
+  const okMsg = document.getElementById('key-ok-msg');
+  const errMsg = document.getElementById('key-err-msg');
+  okMsg.style.display = 'none';
+  errMsg.style.display = 'none';
+  if (!val.startsWith('gsk_') || val.length < 20) {
+    errMsg.style.display = 'block';
+    return;
+  }
+  groqKey = val;
+  okMsg.style.display = 'block';
+  updateKeyUI();
+}
+
+function clearKey() {
+  groqKey = '';
+  document.getElementById('groq-key-input').value = '';
+  document.getElementById('key-ok-msg').style.display = 'none';
+  document.getElementById('key-err-msg').style.display = 'none';
+  updateKeyUI();
+}
+
+function toggleSetting(el) {
+  el.classList.toggle('on');
+}
+
+// ─── AI CHAT ─────────────────────────────────────────────
+const chatHistory = [];
+
+async function sendMsg() {
+  const input = document.getElementById('chat-in');
+  const btn = document.getElementById('send-btn');
+  const msgs = document.getElementById('chat-msgs');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!groqKey) {
+    nav('settings', document.querySelector('[data-page=settings]'));
+    showToast('Please add your Groq API key first.');
+    return;
+  }
+
+  const userDiv = document.createElement('div');
+  userDiv.className = 'msg user';
+  userDiv.innerHTML = `<div class="msg-av user-av">You</div><div class="bubble user-bubble">${escHtml(text)}</div>`;
+  msgs.appendChild(userDiv);
+  input.value = '';
+  btn.disabled = true;
+  chatHistory.push({ role: 'user', content: text });
+
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'msg';
+  typingDiv.innerHTML = `<div class="msg-av ai-av">SB</div><div class="bubble ai-bubble"><span class="dot-pulse"></span><span class="dot-pulse"></span><span class="dot-pulse"></span></div>`;
+  msgs.appendChild(typingDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Build context from uploaded CSV if available
+  let csvContext = '';
+  if (lastUploadedCSVText) {
+    const preview = lastUploadedCSVText.split('\n').slice(0, 20).join('\n');
+    csvContext = `\n\nUploaded CSV data (first 20 rows):\n${preview}`;
+  }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqKey },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 400,
+        messages: [
+          { role: 'system', content: `You are SmartBiz OS, an AI business analyst for Indian SMEs. Help with sales data, leads, invoices, and business growth. Be concise and actionable (3-5 sentences). Use ₹ for currency. Context: Pipeline has ${leads.length} leads worth ₹${leads.reduce((a,l)=>a+l.value,0).toLocaleString('en-IN')}.${csvContext}` },
+          ...chatHistory
+        ]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const reply = data.choices[0].message.content;
+    chatHistory.push({ role: 'assistant', content: reply });
+    typingDiv.querySelector('.ai-bubble').textContent = reply;
+    aiQueryCount++;
+    document.getElementById('m-queries').textContent = aiQueryCount;
+  } catch(e) {
+    typingDiv.querySelector('.ai-bubble').innerHTML = `<span style="color:var(--coral)">Error: ${escHtml(e.message || 'Could not reach Groq. Check your API key.')}</span>`;
+    chatHistory.pop();
+  }
+  btn.disabled = false;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ─── CSV UPLOAD ───────────────────────────────────────────
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function handleFileSelect(input) {
+  if (input.files[0]) processFile(input.files[0]);
+  input.value = '';
+}
+
+function processFile(file) {
+  if (!file.name.match(/\.(csv|tsv|txt)$/i)) {
+    showToast('Please upload a CSV, TSV, or TXT file.');
+    return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    showToast('File too large. Max 50MB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    lastUploadedCSVText = text;
+    const parsed = parseCSV(text);
+    lastUploadedCSVData = parsed;
+
+    // Add to file list
+    addFileToList(file, parsed);
+
+    // Show preview
+    showCSVPreview(file, parsed);
+
+    // Update dashboard metrics
+    const fileCount = document.querySelectorAll('#file-list .file-item').length;
+    document.getElementById('m-files').textContent = fileCount;
+
+    // Add activity
+    addActivity('dot-amber', `CSV uploaded: ${file.name} (${parsed.rows.length} rows)`, 'just now');
+
+    // Auto-analyze if toggle is on
+    if (document.getElementById('auto-analysis-toggle').classList.contains('on') && groqKey) {
+      setTimeout(analyzeCSV, 500);
+    }
+
+    showToast(`✓ ${file.name} uploaded successfully`);
+  };
+  reader.onerror = () => showToast('Error reading file. Please try again.');
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (!lines.length) return { headers: [], rows: [] };
+
+  // Detect delimiter
+  const firstLine = lines[0];
+  const delimiter = (firstLine.split('\t').length > firstLine.split(',').length) ? '\t' : ',';
+
+  const parseRow = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === delimiter && !inQuotes) { result.push(current.trim()); current = ''; continue; }
+      current += ch;
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseRow(lines[0]);
+  const rows = lines.slice(1).map(l => parseRow(l));
+  return { headers, rows };
+}
+
+function addFileToList(file, parsed) {
+  const list = document.getElementById('file-list');
+  const icon = file.name.toLowerCase().includes('customer') ? '👥' : '📊';
+  const sizeStr = file.size < 1024*1024 ? (file.size/1024).toFixed(0)+' KB' : (file.size/1024/1024).toFixed(1)+' MB';
+
+  const item = document.createElement('div');
+  item.className = 'file-item';
+  item.innerHTML = `
+    <span>${icon}</span>
+    <div>
+      <div class="file-name">${escHtml(file.name)}</div>
+      <div class="file-meta">${sizeStr} · ${parsed.rows.length.toLocaleString()} rows · ${parsed.headers.length} columns</div>
+    </div>
+    <div class="fstatus fproc" id="fstatus-new">PROCESSING</div>
+    <button class="btn-ghost" style="font-size:11px;padding:4px 10px" onclick="removeFile(this)">✕</button>
+  `;
+  list.appendChild(item);
+
+  setTimeout(() => {
+    const st = item.querySelector('.fstatus');
+    if (st) { st.textContent = 'PROCESSED'; st.className = 'fstatus fdone'; }
+  }, 1800);
+}
+
+function removeFile(btn) {
+  const item = btn.closest('.file-item');
+  item.remove();
+  const fileCount = document.querySelectorAll('#file-list .file-item').length;
+  document.getElementById('m-files').textContent = fileCount;
+  if (fileCount === 0) {
+    document.getElementById('csv-preview').style.display = 'none';
+    lastUploadedCSVData = null;
+    lastUploadedCSVText = null;
+  }
+}
+
+function showCSVPreview(file, parsed) {
+  const preview = document.getElementById('csv-preview');
+  preview.style.display = 'block';
+  document.getElementById('preview-fname').textContent = file.name;
+  document.getElementById('preview-rows').textContent = parsed.rows.length.toLocaleString();
+  document.getElementById('preview-cols').textContent = parsed.headers.length;
+  const sizeStr = file.size < 1024*1024 ? (file.size/1024).toFixed(0)+' KB' : (file.size/1024/1024).toFixed(1)+' MB';
+  document.getElementById('preview-size').textContent = sizeStr;
+
+  const table = document.getElementById('csv-table');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  if (!parsed.headers.length) return;
+
+  const headerRow = document.createElement('tr');
+  parsed.headers.forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h || '(empty)';
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+
+  const previewRows = parsed.rows.slice(0, 10);
+  previewRows.forEach(row => {
+    const tr = document.createElement('tr');
+    parsed.headers.forEach((_, i) => {
+      const td = document.createElement('td');
+      td.textContent = row[i] !== undefined ? row[i] : '';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+async function analyzeCSV() {
+  if (!groqKey) {
+    nav('settings', document.querySelector('[data-page=settings]'));
+    showToast('Please add your Groq API key first.');
+    return;
+  }
+  if (!lastUploadedCSVText && !lastUploadedCSVData) {
+    showToast('Please upload a CSV file first.');
+    return;
+  }
+
+  const box = document.getElementById('analysis-box');
+  const status = document.getElementById('analyze-status');
+  const btn = document.getElementById('analyze-btn');
+
+  box.style.display = 'block';
+  box.textContent = 'Analyzing your data...';
+  status.style.display = 'inline';
+  status.textContent = 'Running AI analysis...';
+  btn.disabled = true;
+
+  let dataContext = '';
+  if (lastUploadedCSVData) {
+    const { headers, rows } = lastUploadedCSVData;
+    const sample = rows.slice(0, 30).map(r => r.join(', ')).join('\n');
+    dataContext = `Headers: ${headers.join(', ')}\nFirst ${Math.min(30,rows.length)} rows:\n${sample}\nTotal rows: ${rows.length}`;
+  } else {
+    dataContext = lastUploadedCSVText.slice(0, 2000);
+  }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqKey },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 600,
+        messages: [{
+          role: 'system',
+          content: 'You are SmartBiz OS, an AI analyst for Indian SMEs. Analyze the given CSV data and provide: 1) Key metrics/summary, 2) Trends or patterns found, 3) Top 3 business insights or recommendations. Use ₹ for Indian currency. Be specific and actionable. Format with clear sections.'
+        }, {
+          role: 'user',
+          content: `Analyze this business data:\n\n${dataContext}`
+        }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const result = data.choices[0].message.content;
+    box.textContent = result;
+    aiQueryCount++;
+    document.getElementById('m-queries').textContent = aiQueryCount;
+    status.textContent = '✓ Analysis complete';
+    addActivity('dot-green', 'AI analysis completed for uploaded CSV', 'just now');
+  } catch(e) {
+    box.innerHTML = `<span style="color:var(--coral)">Error: ${escHtml(e.message || 'Could not reach Groq.')}</span>`;
+    status.textContent = '✗ Analysis failed';
+  }
+  btn.disabled = false;
+}
+
+function exportReport() {
+  const files = document.querySelectorAll('#file-list .file-item');
+  if (!files.length) {
+    showToast('No files to export. Upload a CSV first.');
+    return;
+  }
+
+  let csvContent = 'SmartBiz OS — Report\n';
+  csvContent += `Generated: ${new Date().toLocaleString('en-IN')}\n\n`;
+  csvContent += 'PIPELINE SUMMARY\n';
+  csvContent += 'Company,Contact,Value (₹),Stage,Last Touch\n';
+  leads.forEach(l => {
+    csvContent += `"${l.company}","${l.contact}",${l.value},"${l.stage}","${l.lastTouch}"\n`;
+  });
+  csvContent += `\nTotal Pipeline Value,,,₹${leads.reduce((a,l)=>a+l.value,0).toLocaleString('en-IN')}\n`;
+
+  if (lastUploadedCSVData) {
+    const { headers, rows } = lastUploadedCSVData;
+    csvContent += `\nUPLOADED CSV DATA (${rows.length} rows)\n`;
+    csvContent += headers.join(',') + '\n';
+    rows.slice(0, 100).forEach(r => { csvContent += r.map(v => `"${v}"`).join(',') + '\n'; });
+  }
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `smartbiz_report_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ Report exported successfully');
+  addActivity('dot-green', 'Report exported as CSV', 'just now');
+}
+
+// ─── CRM ─────────────────────────────────────────────────
+function renderLeads(filtered, searchTerm) {
+  const tbody = document.getElementById('crm-tbody');
+  const empty = document.getElementById('crm-empty');
+  tbody.innerHTML = '';
+
+  if (!filtered.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const stageMap = {
+    'WON':       's-won',
+    'QUALIFIED': 's-qual',
+    'CLOSING':   's-close',
+    'LEAD':      's-lead'
+  };
+
+  filtered.forEach((l, idx) => {
+    const globalIdx = leads.indexOf(l);
+    const valStr = '₹' + l.value.toLocaleString('en-IN');
+    const company = searchTerm ? highlight(l.company, searchTerm) : escHtml(l.company);
+    const contact = searchTerm ? highlight(l.contact, searchTerm) : escHtml(l.contact);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--text)">${company}</td>
+      <td style="color:var(--muted)">${contact}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${valStr}</td>
+      <td><span class="stage ${stageMap[l.stage]||'s-lead'}">${l.stage}</span></td>
+      <td style="color:var(--muted);font-size:12px">${escHtml(l.lastTouch)}</td>
+      <td>
+        <button class="btn-ghost" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="editLeadStage(${globalIdx})">Edit</button>
+        <button class="btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--coral)" onclick="deleteLead(${globalIdx})">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('crm-sub').textContent = `${leads.length} lead${leads.length!==1?'s':''} in pipeline · Total value ₹${leads.reduce((a,l)=>a+l.value,0).toLocaleString('en-IN')}`;
+  document.getElementById('m-leads').textContent = leads.length;
+  document.getElementById('m-leads-d').textContent = leads.filter(l=>l.stage==='WON').length + ' won';
+}
+
+function highlight(text, term) {
+  if (!term) return escHtml(text);
+  const idx = text.toLowerCase().indexOf(term.toLowerCase());
+  if (idx === -1) return escHtml(text);
+  return escHtml(text.slice(0, idx)) + `<mark class="highlight">${escHtml(text.slice(idx, idx+term.length))}</mark>` + escHtml(text.slice(idx+term.length));
+}
+
+function searchLeads(term) {
+  const filtered = term
+    ? leads.filter(l => l.company.toLowerCase().includes(term.toLowerCase()) || l.contact.toLowerCase().includes(term.toLowerCase()))
+    : leads;
+  renderLeads(filtered, term);
+}
+
+function openAddLeadModal() {
+  document.getElementById('add-lead-modal').classList.add('open');
+  document.getElementById('lead-company').focus();
+}
+function closeAddLeadModal() {
+  document.getElementById('add-lead-modal').classList.remove('open');
+  document.getElementById('lead-company').value = '';
+  document.getElementById('lead-contact').value = '';
+  document.getElementById('lead-value').value = '';
+  document.getElementById('lead-stage').value = 'LEAD';
+}
+function addLead() {
+  const company = document.getElementById('lead-company').value.trim();
+  const contact = document.getElementById('lead-contact').value.trim();
+  const value = parseInt(document.getElementById('lead-value').value) || 0;
+  const stage = document.getElementById('lead-stage').value;
+  if (!company || !contact) {
+    showToast('Please fill in Company and Contact fields.');
+    return;
+  }
+  leads.push({ company, contact, value, stage, lastTouch: 'Today' });
+  renderLeads(leads, '');
+  document.getElementById('crm-search').value = '';
+  closeAddLeadModal();
+  showToast(`✓ Lead "${company}" added`);
+  addActivity('dot-green', `New lead added: ${company}`, 'just now');
+}
+
+function editLeadStage(idx) {
+  const stages = ['LEAD','QUALIFIED','CLOSING','WON'];
+  const current = leads[idx].stage;
+  const next = stages[(stages.indexOf(current)+1) % stages.length];
+  leads[idx].stage = next;
+  leads[idx].lastTouch = 'Just now';
+  renderLeads(leads, document.getElementById('crm-search').value);
+  showToast(`"${leads[idx].company}" moved to ${next}`);
+  addActivity('dot-amber', `"${leads[idx].company}" moved to ${next}`, 'just now');
+}
+
+function deleteLead(idx) {
+  const name = leads[idx].company;
+  leads.splice(idx, 1);
+  renderLeads(leads, document.getElementById('crm-search').value);
+  showToast(`Lead "${name}" removed`);
+}
+
+// ─── DASHBOARD CHART ─────────────────────────────────────
+function buildMiniChart() {
+  const vals = [42,58,51,75,63,88];
+  const mc = document.getElementById('mc');
+  mc.innerHTML = '';
+  const mx = Math.max(...vals);
+  vals.forEach((v,i) => {
+    const b = document.createElement('div');
+    b.className = 'mc-bar' + (i===5?' hi':'');
+    b.style.cssText = `flex:1;height:${Math.round(v/mx*100)}%;border-radius:2px 2px 0 0;background:${i===5?'var(--amber)':'var(--surface3)'}`;
+    mc.appendChild(b);
+  });
+}
+
+// ─── ACTIVITY FEED ───────────────────────────────────────
+function addActivity(dotClass, text, time) {
+  const feed = document.getElementById('activity-feed');
+  const item = document.createElement('div');
+  item.className = 'activity-item';
+  item.innerHTML = `<div class="activity-dot ${dotClass}"></div><div class="activity-text">${escHtml(text)}</div><div class="activity-time">${escHtml(time)}</div>`;
+  feed.insertBefore(item, feed.firstChild);
+  // Keep max 8 items
+  while (feed.children.length > 8) feed.removeChild(feed.lastChild);
+}
+
+// ─── TOAST ───────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── UTILS ───────────────────────────────────────────────
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── INIT ────────────────────────────────────────────────
+function init() {
+  // Set date
+  const d = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('dash-date').textContent = `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()} · Groq llama-3.3-70b-versatile`;
+
+  buildMiniChart();
+  renderLeads(leads, '');
+  updateKeyUI();
+
+  // Init dashboard metrics
+  document.getElementById('m-leads').textContent = leads.length;
+  document.getElementById('m-leads-d').textContent = leads.filter(l=>l.stage==='WON').length + ' won';
+}
+
+init();
+</script>
+</body>
+</html>
